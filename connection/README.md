@@ -92,7 +92,7 @@ import (
     "errors"
     "runtime"
 
-    "gaobushuang/gopkg/connection"
+    "github.com/stormgbs/gopkg/connection"
 )
 
 func main() {
@@ -158,7 +158,7 @@ import (
  "runtime"
  "time"
 
- "gaobushuang/gopkg/connection"
+ "github.com/stormgbs/gopkg/connection"
 )
 
 func main() {
