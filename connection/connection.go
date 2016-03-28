@@ -3,12 +3,13 @@ package connection
 /*
    所有的请求必须有应答。
    超时后丢弃。
-*/ 
+*/
 
 import (
 	"bytes"
 	"errors"
 	"log"
+	"net"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -17,10 +18,34 @@ import (
 var DebugID uint32 = 10
 
 var ErrExited = errors.New("exited")
-var ErrTimeout = errors.New("time out")
+var ErrTimeout = errors.New("query time out")
+var ErrOutChanWriteTimeout = errors.New("write out-channel time out")
 var ErrAppNotFound = errors.New("applicant not found")
 
-type Connection struct {
+var c net.Conn
+
+type Connection interface {
+	//local addrs
+	LocalAddr() net.Addr
+
+	//remote addr
+	RemoteAddr() net.Addr
+
+	//Query send request and waiting for response until timeout.
+	Query(req []byte, timeout_ms int64) (resp []byte, err error)
+
+	//Send just send request and return immediately.
+	Send(req []byte) error
+
+	//If resp found no app, we forward it to outer channel.
+	// SetOutChannel(ch chan<- []byte)
+	// SetOutChannelWriteTimeout(d time.Duration)
+
+	//Close and destory conn.
+	Close()
+}
+
+type connection struct {
 	sync.RWMutex
 
 	conn       Socket
@@ -34,9 +59,8 @@ type Connection struct {
 
 	identity uint32
 
-	timeout time.Duration
-	chexit  chan bool
-	closed  bool
+	chexit chan bool
+	closed bool
 }
 
 type recv_chan struct {
@@ -44,7 +68,7 @@ type recv_chan struct {
 	timer *time.Timer
 }
 
-func NewConnection(conn Socket, count int, dh DataHandler, eh ErrorHandler, timeout time.Duration) *Connection {
+func NewConnection(sock Socket, count int, dh DataHandler, eh ErrorHandler) Connection {
 	maxcount := count
 	if maxcount < 1024 {
 		maxcount = 1024
@@ -55,15 +79,15 @@ func NewConnection(conn Socket, count int, dh DataHandler, eh ErrorHandler, time
 		chrecv <- &recv_chan{ch: make(chan []byte, 1), timer: &time.Timer{}}
 	}
 
-	c := &Connection{
-		conn:       conn,
+	c := &connection{
+		conn:       sock,
 		applicants: make(map[uint32]*recv_chan),
 		chrecv:     chrecv,
 		chsend:     make(chan []byte, maxcount),
-		dh:         dh,
-		eh:         eh,
-		timeout:    timeout,
-		chexit:     make(chan bool),
+		// out_channel: out_channel,
+		dh:     dh,
+		eh:     eh,
+		chexit: make(chan bool),
 	}
 
 	if dh == nil {
@@ -74,16 +98,12 @@ func NewConnection(conn Socket, count int, dh DataHandler, eh ErrorHandler, time
 		c.eh = &default_error_handler{}
 	}
 
-	if timeout <= 0 {
-		c.timeout = 5 * time.Second
-	}
-
 	go c.start()
 
 	return c
 }
 
-func (c *Connection) start() {
+func (c *connection) start() {
 	c.wg.Add(2)
 
 	errch := make(chan error, 2)
@@ -110,12 +130,33 @@ func (c *Connection) start() {
 			}
 			c.Unlock()
 			log.Println("Connection closed, error:", err)
+			c.eh.OnError(err)
 		}
 	}
 	close(errch)
 }
 
-func (c *Connection) Close() {
+// func (c *connection) SetOutChannel(ch chan<- []byte) {
+// 	c.out_channel = ch
+// }
+
+// func (c *connection) SetOutChannelWriteTimeout(d time.Duration) {
+// 	c.out_channel_w_tmout = d
+// }
+
+func (c *connection) LocalAddr() net.Addr {
+	return c.conn.LocalAddr()
+}
+func (c *connection) RemoteAddr() net.Addr {
+	return c.conn.RemoteAddr()
+}
+
+func (c *connection) Send(data []byte) error {
+	id := c.newIdentity()
+	return c.write_request(id, data)
+}
+
+func (c *connection) Close() {
 	c.Lock()
 	if !c.closed {
 		close(c.chexit)
@@ -127,7 +168,7 @@ func (c *Connection) Close() {
 }
 
 // Send request and wait response.
-func (c *Connection) Query(data []byte) (res []byte, err error) {
+func (c *connection) Query(data []byte, timeout_ms int64) (res []byte, err error) {
 	var recv *recv_chan
 
 	select {
@@ -145,10 +186,13 @@ func (c *Connection) Query(data []byte) (res []byte, err error) {
 	c.addApplicant(id, recv)
 	defer c.popApplicant(id)
 
-	recv.timer = time.NewTimer(c.timeout)
+	if timeout_ms <= 0 {
+		timeout_ms = 5000 //5s
+	}
+	recv.timer = time.NewTimer(time.Duration(timeout_ms) * time.Millisecond)
 
-	// log.Println("do_request ...")
-	err = c.do_request(id, data)
+	// log.Println("write_request ...")
+	err = c.write_request(id, data)
 	if err != nil {
 		log.Printf("Connection::Query() error: %s", err)
 		return nil, err
@@ -165,7 +209,7 @@ func (c *Connection) Query(data []byte) (res []byte, err error) {
 	return res, nil
 }
 
-func (c *Connection) do_request(identity uint32, data []byte) (err error) {
+func (c *connection) write_request(identity uint32, data []byte) (err error) {
 	p := Packet{
 		Type:     "REQ",
 		Identity: identity,
@@ -190,7 +234,7 @@ func (c *Connection) do_request(identity uint32, data []byte) (err error) {
 	return nil
 }
 
-func (c *Connection) write(data []byte) error {
+func (c *connection) write(data []byte) error {
 	select {
 	case <-c.chexit:
 		return ErrExited
@@ -200,28 +244,30 @@ func (c *Connection) write(data []byte) error {
 	return nil
 }
 
-func (c *Connection) send() error {
+func (c *connection) send() (err error) {
+	defer func() {
+		if err != nil {
+			log.Println("Connection send ", c.RemoteAddr().String(), ", error:", err)
+		}
+	}()
+
 	for {
 		select {
 		case <-c.chexit:
-			return ErrExited
+			err = ErrExited
+			return
 		case data := <-c.chsend:
-			if err := c.conn.Write(data); err != nil {
-				return err
+			if err = c.conn.Write(data); err != nil {
+				return
 			}
 		}
 	}
 }
 
-func (c *Connection) recv() (err error) {
+func (c *connection) recv() (err error) {
 	defer func() {
 		if err != nil {
-			select {
-			case <-c.chexit:
-				err = nil
-			default:
-				c.eh.OnError(err)
-			}
+			log.Println("Connection recv ", c.RemoteAddr().String(), ", error:", err)
 		}
 	}()
 
@@ -230,13 +276,15 @@ func (c *Connection) recv() (err error) {
 	for {
 		select {
 		case <-c.chexit:
-			return nil
+			err = ErrExited
+			return
 		default:
 		}
 
-		src, err := c.conn.Read()
+		var src []byte
+		src, err = c.conn.Read()
 		if err != nil {
-			return err
+			return
 		}
 
 		pre = append(pre, src...)
@@ -255,7 +303,7 @@ func (c *Connection) recv() (err error) {
 	return nil
 }
 
-func (c *Connection) handle(data []byte) (err error) {
+func (c *connection) handle(data []byte) (err error) {
 	var pkt *Packet
 	pkt, err = decode_packet(data)
 	if err != nil {
@@ -265,11 +313,11 @@ func (c *Connection) handle(data []byte) (err error) {
 
 	switch pkt.Type {
 	case "REQ":
-		go c.process_request_packet(pkt)
-		break
+		return c.process_request_packet(pkt)
+		// break
 	case "RSP":
-		go c.process_response_packet(pkt)
-		break
+		return c.process_response_packet(pkt)
+		// break
 	default:
 		err = ErrProtoUnknownType
 	}
@@ -278,7 +326,7 @@ func (c *Connection) handle(data []byte) (err error) {
 }
 
 // 处理 对方的请求
-func (c *Connection) process_request_packet(p *Packet) (err error) {
+func (c *connection) process_request_packet(p *Packet) (err error) {
 	if p == nil {
 		return errors.New("empty packet")
 	}
@@ -304,13 +352,15 @@ func (c *Connection) process_request_packet(p *Packet) (err error) {
 
 // 处理 对方的响应
 // 查找recv_chan
-func (c *Connection) process_response_packet(p *Packet) (err error) {
+func (c *connection) process_response_packet(p *Packet) (err error) {
 	if p == nil {
 		return errors.New("empty packet")
 	}
 
 	recv, ok := c.popApplicant(p.Identity)
-	if !ok || recv == nil {
+	if !ok {
+		return c.dh.ProcessOrphanResponse(p.Body)
+	} else if recv == nil {
 		return ErrAppNotFound
 	}
 
@@ -327,13 +377,34 @@ func (c *Connection) process_response_packet(p *Packet) (err error) {
 	return nil
 }
 
-func (c *Connection) addApplicant(id uint32, recv *recv_chan) {
+// func (c *connection) push_out_channel(d []byte) error {
+// 	if c.out_channel_w_tmout <= 0 {
+// 		for {
+// 			select {
+// 			case c.out_channel <- d:
+// 				return nil
+// 			}
+// 		}
+// 	} else {
+// 		timer := time.NewTimer(c.out_channel_w_tmout)
+// 		for {
+// 			select {
+// 			case c.out_channel <- d:
+// 				return nil
+// 			case <-timer.C:
+// 				return ErrOutChanWriteTimeout
+// 			}
+// 		}
+// 	}
+// }
+
+func (c *connection) addApplicant(id uint32, recv *recv_chan) {
 	c.Lock()
 	c.applicants[id] = recv
 	c.Unlock()
 }
 
-func (c *Connection) popApplicant(id uint32) (*recv_chan, bool) {
+func (c *connection) popApplicant(id uint32) (*recv_chan, bool) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -346,6 +417,6 @@ func (c *Connection) popApplicant(id uint32) (*recv_chan, bool) {
 	return rv, true
 }
 
-func (c *Connection) newIdentity() uint32 {
+func (c *connection) newIdentity() uint32 {
 	return atomic.AddUint32(&c.identity, 1)
 }

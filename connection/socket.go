@@ -5,6 +5,8 @@ import (
 )
 
 type Socket interface {
+	LocalAddr() net.Addr
+	RemoteAddr() net.Addr
 	Read() ([]byte, error)
 	Write([]byte) error
 	Close()
@@ -13,15 +15,26 @@ type Socket interface {
 const SocketDefaultMaxBufferSize int = 1024 * 1024 //1MB
 
 type socket struct {
-	conn        *net.TCPConn
+	conn        net.Conn
 	read_buffer []byte
 }
 
-func NewTcpSocket(c *net.TCPConn) Socket {
+func NewSocket(c net.Conn) Socket {
+	if tcpc, ok := c.(*net.TCPConn); ok {
+		tcpc.SetKeepAlive(true)
+	}
 	return &socket{
 		conn:        c,
 		read_buffer: make([]byte, SocketDefaultMaxBufferSize),
 	}
+}
+
+func (s *socket) LocalAddr() net.Addr {
+	return s.conn.LocalAddr()
+}
+
+func (s *socket) RemoteAddr() net.Addr {
+	return s.conn.RemoteAddr()
 }
 
 func (s *socket) Read() ([]byte, error) {

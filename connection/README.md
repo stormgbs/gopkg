@@ -8,10 +8,24 @@ We can send many requests to oppoiste-end in the same time, but it only supports
 
 ## Interface&Function
 
+#### Connection
+
+```go
+type Connection interface {
+    LocalAddr() net.Addr
+    RemoteAddr() net.Addr
+    Query(data []byte, timeout_ms int64) (resp []byte, err error)
+    Send(req []byte) error
+    Close()
+}
+```
+
 #### Socket
 
 ```go
 type Socket interface {
+   LocalAddr() net.Addr
+   RemoteAddr() net.Addr
    Read() ([]byte, error)
    Write([]byte) error
    Close()
@@ -23,6 +37,7 @@ type Socket interface {
 ```go
 type DataHandler interface {
     ProcessRequest([]byte) ([]byte, error)
+    ProcessOrphanResponse([]byte) error
 }
 ```
 
@@ -60,14 +75,15 @@ Create a TcpConn, and then make a Socket.
 #### Step2
 Create a Connection.
 
-    c := connection.NewConnection(socket, 10240, nil, nil, 5*time.Second)
+    var c connection.Connection
+    c = connection.NewConnection(socket, 10240, nil, nil)
     
     
 #### Step3
-Now send a request and wait for response.
+Now send a request and wait for response with a timer.
     
     var myrequest []byte
-    rsp_bytes, err := c.Query(myrequest)
+    rsp_bytes, err := c.Query(myrequest, 1000) //timeout: 1s
 
 #### Step4
 Close it.
@@ -92,7 +108,7 @@ import (
     "errors"
     "runtime"
 
-    "github.com/stormgbs/gopkg/connection"
+    "gaobushuang/gopkg/connection"
 )
 
 func main() {
@@ -117,9 +133,9 @@ func main() {
         fmt.Println("Connected from", conn.RemoteAddr().String())
 
         sock := connection.NewTcpSocket(conn)
-        c := connection.NewConnection(sock, 10240, &time_handler{}, nil, 5*time.Second)
+        c := connection.NewConnection(sock, 10240, &time_handler{}, nil)
 
-                go func(conn *connection.Connection){
+                go func(conn connection.Connection){
             defer func() {
                 fmt.Println("Disconnected from client.")
                 conn.Close()
@@ -127,7 +143,7 @@ func main() {
 
             cc := make(chan bool)
             <- cc
-                }(c)
+        }(c)
 
         }
 }
@@ -156,9 +172,8 @@ import (
  "net"
  "os"
  "runtime"
- "time"
 
- "github.com/stormgbs/gopkg/connection"
+ "gaobushuang/gopkg/connection"
 )
 
 func main() {
@@ -175,7 +190,7 @@ func main() {
  }
 
  sock := connection.NewTcpSocket(conn)
- c := connection.NewConnection(sock, 10240, nil, nil, 5*time.Second)
+ c := connection.NewConnection(sock, 10240, nil, nil)
 
  p := 3000
  synch := make(chan bool, p)
@@ -188,7 +203,7 @@ func main() {
   select {
   case <-synch:
    go func(ch chan bool) {
-    rsp, err := c.Query([]byte("time"))
+    rsp, err := c.Query([]byte("time"), 1000) //timeout: 1s
     fmt.Println(string(rsp), err)
     ch <- true
    }(synch)
