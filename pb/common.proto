@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+
+package builderproto;
+
+
+enum Error {
+	ErrNone = 0;
+	ErrAnotherTaskRunning = 1;
+	ErrOther = 2;
+}

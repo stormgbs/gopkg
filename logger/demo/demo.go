@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"gopkg/logger"
+	"github.com/stormgbs/gopkg/logger"
 )
 
 func printa(l *logger.Logger) {

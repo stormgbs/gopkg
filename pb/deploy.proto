@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package builderproto;
+
+import "common.proto";
+
+message ScmFile {
+	string 	relative_path 	= 1;
+	bytes	body 			= 2;
+}
+
+message DeployRequest {
+	int64 	project_id 		= 1;
+	string 	type 			= 2;
+	int64 	task_id 		= 3;
+	int64 	build_id 		= 4;
+	string 	build_version 	= 5;
+	string	build_token		= 6;
+	string 	image 			= 7;
+	string 	deploy_dir 		= 8;
+	int64	tree_id			= 9;
+	string	host			= 10;
+	repeated string 	before_deploy_script 	= 11;
+	repeated string 	after_deploy_script 	= 12;
+			 bool		disable_runscripts		= 13;
+	repeated ScmFile 	scm_files				= 14;	
+}
+
+message RollbackRequest {
+	int64 	project_id 		= 1;
+	int64 	task_id 		= 2;
+	int64 	build_id 		= 3;
+	string 	build_version 	= 4;
+	string 	build_token 	= 5;
+	string 	image 			= 6;
+	string 	deploy_dir 		= 7;
+	int64	tree_id			= 8;
+	string	host			= 9;
+	repeated string before_deploy_script 	= 10;
+	repeated string after_deploy_script 	= 11;
+}
+
+message DeployReply {
+	Error error 	= 1;
+	bytes message 	= 2;
+}
+
+service Deoloyer {
+	// 部署任务，包括 normal 和 docker两种方式
+	rpc DoDeploy (DeployRequest) returns (DeployReply) {}
+
+	// 从某次部署任务中回滚
+	rpc DoRollbackFromTask (RollbackRequest) returns (DeployReply) {}
+
+	// 回滚至历史某一发布的版本
+	rpc DoRollbackToTask (RollbackRequest) returns (DeployReply) {}
+}

@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package builderproto;
+
+enum Err {
+	None = 0;
+	TaskNotFoundInDB = 100008001;
+	TaskNotFoundInMem = 100008002;
+	TaskAlreadyRunning = 100008003;
+	BadTaskConfig = 100008004;
+	Database = 100008005;
+	NotAllowed = 100008006;
+	LoadingTask = 100008007;
+	FetchScm = 100008008;
+	TaskConfictInQuorum = 100008009;
+	TaskConfictInTasks = 100008010;
+	AddRunningTask = 100008011;
+}

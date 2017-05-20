@@ -12,7 +12,7 @@ type Packet struct {
 	Type     string //REQ|RSP
 	Identity uint32
 	BodySize uint32
-	Body     []byte //用户数据
+	Body     []byte //数据
 }
 
 var (

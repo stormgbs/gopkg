@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package builderproto;
+
+
+message LogMsgRequest {
+	string	from	= 1;
+	string 	path 	= 2;
+	bytes 	body	= 3;
+}
+
+
+message LogMsgReply {
+	string	error	= 1;
+}
+
+
+service LogBus {
+	rpc LogMsgProcess (stream LogMsgRequest) returns (LogMsgReply) {}
+}

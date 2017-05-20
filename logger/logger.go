@@ -1,40 +1,20 @@
 package logger
 
 import (
-	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"os"
-	"path"
-	"reflect"
-	"runtime"
-	"strings"
 	"sync"
 	"time"
-	"unsafe"
 )
-
-type Level uint8
-
-const (
-	LevelDebug Level = iota
-	LevelInfo
-	LevelWarn
-	LevelError
-	LevelCrit
-)
-
-//Mon Jan 2 15:04:05 -0700 MST 2006
-const default_time_format = "2006/01/02 15:04:05.000"
 
 type Logger struct {
 	mutex sync.Mutex
 
 	disable bool
 
-	w                  io.WriteCloser
-	bw                 *bufio.Writer
+	w io.WriteCloser
+	// bw                 *bufio.Writer
 	time_format        string
 	level              Level
 	enable_caller_info bool
@@ -44,8 +24,8 @@ type Logger struct {
 
 func NewDefaultLogger() *Logger {
 	l := &Logger{
-		w:                  os.Stdout,
-		bw:                 bufio.NewWriter(os.Stdout),
+		w: os.Stdout,
+		// bw:                 bufio.NewWriter(os.Stdout),
 		time_format:        default_time_format,
 		level:              LevelDebug,
 		enable_caller_info: true,
@@ -58,8 +38,8 @@ func NewDefaultLogger() *Logger {
 
 func NewLogger(wc io.WriteCloser) *Logger {
 	l := &Logger{
-		w:           wc,
-		bw:          bufio.NewWriter(wc),
+		w: wc,
+		// bw:          bufio.NewWriter(wc),
 		time_format: default_time_format,
 		level:       LevelDebug,
 
@@ -84,27 +64,19 @@ func (l *Logger) SetWriter(w io.WriteCloser) {
 
 	l.mutex.Lock()
 	old_w := l.w
-	old_bw := l.bw
+	// old_bw := l.bw
 	l.w = w
-	l.bw = bufio.NewWriterSize(w, 1024*1024)
+	// l.bw = bufio.NewWriterSize(w, 1024*1024)
 	l.mutex.Unlock()
 
-	if old_w != nil && old_bw != nil {
-		old_bw.Flush()
-		old_bw = nil
+	// if old_w != nil && old_bw != nil {
+	if old_w != nil {
+		// old_bw.Flush()
+		// old_bw = nil
 		old_w.Close()
 		old_w = nil
-		old_bw = nil
+		// old_bw = nil
 	}
-}
-
-func StringToReadonlySlice(s *string) (b []byte) {
-	pbytes := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	pstring := (*reflect.StringHeader)(unsafe.Pointer(s))
-	pbytes.Data = pstring.Data
-	pbytes.Len = pstring.Len
-	pbytes.Cap = pstring.Len
-	return
 }
 
 func (l *Logger) SetLevel(lv Level) {
@@ -154,7 +126,8 @@ func (l *Logger) loop_write() {
 			select {
 			case logentry := <-l.logbuf:
 				count++
-				l.bw.Write(logentry)
+				// l.bw.Write(logentry)
+				l.w.Write(logentry)
 				if count > 1000 {
 					l.mutex.Unlock()
 					time.Sleep(time.Millisecond)
@@ -215,63 +188,26 @@ func (l *Logger) Critical(format string, a ...interface{}) {
 	}
 }
 
-var ErrEmptyLogWriter = errors.New("empty log writer")
-
 func (l *Logger) Flush() error {
+	return nil
 	// l.mutex.Lock()
-	// defer l.mutex.Unlock()
-	l.mutex.Lock()
-	var err error
-	if l.bw != nil {
-		err = l.bw.Flush()
-	} else {
-		err = ErrEmptyLogWriter
-	}
-	l.mutex.Unlock()
-	return err
+	// var err error
+	// if l.bw != nil {
+	// 	err = l.bw.Flush()
+	// } else {
+	// 	err = ErrEmptyLogWriter
+	// }
+	// l.mutex.Unlock()
+	// return err
 }
 
 func (l *Logger) Close() {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	l.bw.Flush()
+	// l.bw.Flush()
 
 	if l.w != nil {
 		l.w.Close()
-	}
-}
-
-type caller_info struct {
-	pkg  string
-	file string
-	fnc  string
-	line int
-}
-
-func (c caller_info) String() string {
-	return fmt.Sprintf("%s:%s:%s(..):%d", c.pkg, c.file, c.fnc, c.line)
-}
-
-func get_caller_info() caller_info {
-	pc, file, line, _ := runtime.Caller(3)
-	_, fileName := path.Split(file)
-	parts := strings.Split(runtime.FuncForPC(pc).Name(), ".")
-	pl := len(parts)
-	packageName := ""
-	funcName := parts[pl-1]
-
-	if parts[pl-2][0] == '(' {
-		funcName = parts[pl-2] + "." + funcName
-		packageName = strings.Join(parts[0:pl-2], ".")
-	} else {
-		packageName = strings.Join(parts[0:pl-1], ".")
-	}
-
-	return caller_info{
-		pkg:  packageName,
-		file: fileName,
-		fnc:  funcName,
-		line: line,
 	}
 }

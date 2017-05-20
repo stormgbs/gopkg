@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package builderproto;
+
+enum FileType {
+	Other 	= 0; // 其他类型
+	Reg 	= 1; // 普通文件
+	Dir 	= 2; // 目录
+	Symlink = 3; // 软链接文件
+}
+
+// // 文件内容类型
+// enum FileDataType {
+// 	Unknown 		= 0;
+// 	Text			= 1; // 文本类型
+// 	NoneText		= 2; // 非文本类型
+// }
+
+message ReadDirectoryRequest {
+	string 	path 	= 1;
+}
+
+message ReadFileRequest {
+	string 	file 	= 1;
+	int64	lines	= 2;
+}
+
+message Entry {
+				string			name			= 1; // 文件名
+				string			abs_name		= 2; // 文件绝对路径全名
+				int64			size			= 3; // 文件大小
+				string			modify_time		= 4; // 最后修改时间
+				string			link_target		= 5; // 链接的目标文件（只对软链接文件有效）
+				string 			user 			= 6; // 文件属主
+				string 			group			= 7; // 文件属组
+				string			mode 			= 8;
+				FileType 		type 			= 9; // 文件类型
+				// FileDataType	data_type		= 9; // 文件内容类型（只支持 文本 或 非文本 两种类型）
+	repeated	Entry 			entries 		= 10; // 目录下的文件列表
+}
+
+message ReadDirectoryReply {
+	repeated 	Entry 		Entries 		= 1;
+}
+
+message ReadFileReply {
+	bytes body = 1;
+}
+
+service LogReader {
+	// 获取一个目录树结构
+	rpc DirTree (ReadDirectoryRequest) returns (ReadDirectoryReply) {}
+	// 读文件
+	rpc ReadFile (ReadFileRequest) returns (ReadFileReply) {}
+}

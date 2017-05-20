@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package builderproto;
+
+import "common.proto";
+import "deploy.proto";
+
+message AdditionalFile {
+	string 	name = 1;
+	bytes 	body = 2;
+}
+
+message ImageBuildRequest {
+				int64	id 						= 1;
+				string 	target 					= 2; //target image
+				int64  	repo_id					= 3;
+				string 	repo_version 			= 4;
+				string 	repo_token				= 5;
+				string  app_dir_name			= 6;
+				bytes 	dockerfile 				= 7;
+				bytes 	dockerignore			= 8;
+	repeated	AdditionalFile 	additional_files	= 9;
+	repeated 	ScmFile 		scm_files			= 10;
+}
+
+message ImageBuildReply {
+	bytes		message	= 	1;
+	Error 		error 	=	2;
+}
+
+service ImageBuilder {
+	rpc DoBuildImage (ImageBuildRequest) returns (ImageBuildReply) {}
+}

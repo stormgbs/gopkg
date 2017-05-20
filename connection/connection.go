@@ -314,10 +314,8 @@ func (c *connection) handle(data []byte) (err error) {
 	switch pkt.Type {
 	case "REQ":
 		return c.process_request_packet(pkt)
-		// break
 	case "RSP":
 		return c.process_response_packet(pkt)
-		// break
 	default:
 		err = ErrProtoUnknownType
 	}
@@ -359,12 +357,11 @@ func (c *connection) process_response_packet(p *Packet) (err error) {
 
 	recv, ok := c.popApplicant(p.Identity)
 	if !ok {
-		return c.dh.ProcessOrphanResponse(p.Body)
+		return c.dh.ProcessOrphanResponse(p.Body)  //处理：异步查询类型
 	} else if recv == nil {
 		return ErrAppNotFound
 	}
 
-	// log.Printf("response package: %s|%d|%d", string(p.Body), p.BodySize, len(recv.ch))
 	select {
 	case <-c.chexit:
 		return ErrExited

@@ -8,10 +8,7 @@ import (
 var ErrOrphanRespDiscard = errors.New("discard orphan response")
 
 type DataHandler interface {
-	//handle request
 	ProcessRequest([]byte) ([]byte, error)
-
-	//only handle response which found no app associated.
 	ProcessOrphanResponse([]byte) error
 }
 

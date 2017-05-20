@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"time"
 
-	"gopkg/connection"
+	"github.com/stormgbs/gopkg/connection"
 )
 
 func main() {

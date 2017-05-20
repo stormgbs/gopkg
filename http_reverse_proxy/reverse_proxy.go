@@ -22,6 +22,7 @@ var trans = &http.Transport{
 	DisableCompression:  true,
 }
 
+// 选出一个目标机器去发送代理的 HTTP 请求。
 type ProxyEndpointFunc func() EndpointAddr
 
 func NewProxyRoundTripper(pefnc ProxyEndpointFunc) *proxyRoundTripper {
