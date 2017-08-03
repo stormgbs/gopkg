@@ -21,6 +21,7 @@ func SetLogFile(file string) error {
 		return err
 	}
 	SetWriter(fp)
+	return nil
 }
 
 func SetWriter(w io.WriteCloser) {
