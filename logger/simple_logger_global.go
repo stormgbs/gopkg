@@ -16,7 +16,7 @@ func Disable() {
 }
 
 func SetLogFile(file string) error {
-	fp, err := os.OpenFile(file, os.O_WRONLY|os.O_APPEND, 0664)
+	fp, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0664)
 	if err != nil {
 		return err
 	}
