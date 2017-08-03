@@ -6,7 +6,7 @@ import (
 	"github.com/stormgbs/gopkg/logger"
 )
 
-func printa(l *logger.Logger) {
+func myfunc(l *logger.SimpleLogger) {
 	l.Error("test call")
 }
 
@@ -16,7 +16,9 @@ func main() {
 		panic(err)
 	}
 
-	lg := logger.NewLogger(fp)
+	lg := logger.NewSimpleLogger(fp)
+
+	lg.System = "DEMO"
 
 	lg.SetLevel(logger.LevelError)
 	lg.Debug("debug: %d-%d", 1, 100)
@@ -35,7 +37,7 @@ func main() {
 	lg.EnableCallerInfo()
 	lg.Critical("testcriti")
 
-	printa(lg)
+	myfunc(lg)
 
 	lg.Close()
 }

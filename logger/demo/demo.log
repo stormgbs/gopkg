@@ -1,0 +1,7 @@
+
+2017/07/28 17:14:36.928 [ERROR] |DEMO| error: 4
+2017/07/28 17:14:36.928 [INFO] |DEMO| info: 2
+2017/07/28 17:14:36.928 [ERROR] |DEMO| error: 4
+07/28 17:14:36 [INFO] |DEMO| [main:demo.go:main(..):35] info: 2
+07/28 17:14:36 [CRITICAL] |DEMO| [main:demo.go:main(..):38] testcriti
+07/28 17:14:36 [ERROR] |DEMO| [main:demo.go:myfunc(..):10] test call
