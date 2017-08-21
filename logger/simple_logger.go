@@ -57,7 +57,7 @@ func (l *SimpleLogger) SetWriter(w io.WriteCloser) {
 	l.w = w
 	l.mutex.Unlock()
 
-	if old_w != nil {
+	if old_w != nil && old_w != os.Stdout && old_w != os.Stderr {
 		old_w.Close()
 		old_w = nil
 	}
@@ -81,7 +81,7 @@ func (l *SimpleLogger) DisableCallerInfo() {
 	l.enable_caller_info = false
 }
 
-func (l *SimpleLogger) write(level_str string, format string, a ...interface{}) {
+func (l *SimpleLogger) write(level_str string, format string, a ...interface{}) error {
 	var s string
 
 	if !l.enable_caller_info {
@@ -99,7 +99,9 @@ func (l *SimpleLogger) write(level_str string, format string, a ...interface{}) 
 
 	}
 
-	l.w.Write(StringToReadonlySlice(&s))
+	//l.w.Write(StringToReadonlySlice(&s))
+	_, err := l.w.Write([]byte(s))
+	return err
 }
 
 func (l *SimpleLogger) Debug(format string, a ...interface{}) {
@@ -151,7 +153,8 @@ func (l *SimpleLogger) Close() {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	if l.w != nil {
-		l.w.Close()
+	w := l.w
+	if w != nil && w != os.Stdout && w != os.Stderr {
+		w.Close()
 	}
 }

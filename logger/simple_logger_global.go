@@ -2,6 +2,7 @@ package logger
 
 import (
 	"io"
+	"log"
 	"os"
 )
 
@@ -17,6 +18,7 @@ func Disable() {
 
 func SetLogFile(file string) error {
 	fp, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0664)
+	log.Println("set logfile:", file, err)
 	if err != nil {
 		return err
 	}
@@ -25,19 +27,7 @@ func SetLogFile(file string) error {
 }
 
 func SetWriter(w io.WriteCloser) {
-	if w == nil {
-		panic("SetWriter w is null")
-	}
-
-	simpleLg.mutex.Lock()
-	old_w := simpleLg.w
-	simpleLg.w = w
-	simpleLg.mutex.Unlock()
-
-	if old_w != nil {
-		old_w.Close()
-		old_w = nil
-	}
+	simpleLg.SetWriter(w)
 }
 
 func SetLevel(lv Level) {
@@ -45,70 +35,37 @@ func SetLevel(lv Level) {
 }
 
 func SetTimeFormat(format string) {
-	simpleLg.mutex.Lock()
-	defer simpleLg.mutex.Unlock()
-	simpleLg.time_format = format
+	simpleLg.SetTimeFormat(format)
 }
 
 func EnableCallerInfo() {
-	simpleLg.enable_caller_info = true
+	simpleLg.EnableCallerInfo()
 }
 
 func DisableCallerInfo() {
-	simpleLg.enable_caller_info = false
+	simpleLg.DisableCallerInfo()
 }
 
 func Debug(format string, a ...interface{}) {
-	if simpleLg.disable {
-		return
-	}
-
-	if simpleLg.level <= LevelDebug {
-		simpleLg.write("DEBUG", format, a...)
-	}
+	simpleLg.Debug(format, a)
 }
 
 func Info(format string, a ...interface{}) {
-	if simpleLg.disable {
-		return
-	}
-	if simpleLg.level <= LevelInfo {
-		simpleLg.write("INFO", format, a...)
-	}
+	simpleLg.Info(format, a)
 }
 
 func Warn(format string, a ...interface{}) {
-	if simpleLg.disable {
-		return
-	}
-	if simpleLg.level <= LevelWarn {
-		simpleLg.write("WARN", format, a...)
-	}
+	simpleLg.Warn(format, a)
 }
 
 func Error(format string, a ...interface{}) {
-	if simpleLg.disable {
-		return
-	}
-	if simpleLg.level <= LevelError {
-		simpleLg.write("ERROR", format, a...)
-	}
+	simpleLg.Error(format, a)
 }
 
 func Critical(format string, a ...interface{}) {
-	if simpleLg.disable {
-		return
-	}
-	if simpleLg.level <= LevelCrit {
-		simpleLg.write("CRITICAL", format, a...)
-	}
+	simpleLg.Critical(format, a)
 }
 
 func Close() {
-	simpleLg.mutex.Lock()
-	defer simpleLg.mutex.Unlock()
-
-	if simpleLg.w != nil {
-		simpleLg.w.Close()
-	}
+	simpleLg.Close()
 }
