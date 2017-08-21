@@ -18,6 +18,7 @@ type Logger struct {
 	time_format        string
 	level              Level
 	enable_caller_info bool
+	caller_path_number int
 
 	logbuf chan []byte
 }
@@ -29,6 +30,7 @@ func NewDefaultLogger() *Logger {
 		time_format:        default_time_format,
 		level:              LevelDebug,
 		enable_caller_info: true,
+		caller_path_number: 3,
 
 		logbuf: make(chan []byte, 200000),
 	}
@@ -40,8 +42,9 @@ func NewLogger(wc io.WriteCloser) *Logger {
 	l := &Logger{
 		w: wc,
 		// bw:          bufio.NewWriter(wc),
-		time_format: default_time_format,
-		level:       LevelDebug,
+		time_format:        default_time_format,
+		level:              LevelDebug,
+		caller_path_number: 3,
 
 		logbuf: make(chan []byte, 200000),
 	}
@@ -103,7 +106,7 @@ func (l *Logger) write(level_str string, format string, a ...interface{}) {
 	if !l.enable_caller_info {
 		s = fmt.Sprintf(time.Now().Format(l.time_format)+" ["+level_str+"] "+format+"\n", a...)
 	} else {
-		s = fmt.Sprintf(time.Now().Format(l.time_format)+" ["+level_str+"] ["+get_caller_info().String()+"] "+format+"\n", a...)
+		s = fmt.Sprintf(time.Now().Format(l.time_format)+" ["+level_str+"] ["+get_caller_info(l.caller_path_number).String()+"] "+format+"\n", a...)
 	}
 
 	l.logbuf <- StringToReadonlySlice(&s)

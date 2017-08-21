@@ -16,6 +16,7 @@ type SimpleLogger struct {
 	time_format        string
 	level              Level
 	enable_caller_info bool
+	caller_path_number int
 
 	System string
 }
@@ -26,15 +27,17 @@ func NewDefaultSimpleLogger() *SimpleLogger {
 		time_format:        default_time_format,
 		level:              LevelDebug,
 		enable_caller_info: true,
+		caller_path_number: 3,
 	}
 	return l
 }
 
 func NewSimpleLogger(wc io.WriteCloser) *SimpleLogger {
 	l := &SimpleLogger{
-		w:           wc,
-		time_format: default_time_format,
-		level:       LevelDebug,
+		w:                  wc,
+		time_format:        default_time_format,
+		level:              LevelDebug,
+		caller_path_number: 3,
 	}
 	return l
 }
@@ -57,7 +60,7 @@ func (l *SimpleLogger) SetWriter(w io.WriteCloser) {
 	l.w = w
 	l.mutex.Unlock()
 
-	if old_w != nil && old_w != os.Stdout && old_w != os.Stderr {
+	if old_w != nil {
 		old_w.Close()
 		old_w = nil
 	}
@@ -81,7 +84,7 @@ func (l *SimpleLogger) DisableCallerInfo() {
 	l.enable_caller_info = false
 }
 
-func (l *SimpleLogger) write(level_str string, format string, a ...interface{}) error {
+func (l *SimpleLogger) write(level_str string, format string, a ...interface{}) {
 	var s string
 
 	if !l.enable_caller_info {
@@ -92,16 +95,14 @@ func (l *SimpleLogger) write(level_str string, format string, a ...interface{}) 
 		}
 	} else {
 		if l.System != "" {
-			s = fmt.Sprintf(time.Now().Format(l.time_format)+" ["+level_str+"] |"+l.System+"| ["+get_caller_info().String()+"] "+format+"\n", a...)
+			s = fmt.Sprintf(time.Now().Format(l.time_format)+" ["+level_str+"] |"+l.System+"| ["+get_caller_info(l.caller_path_number).String()+"] "+format+"\n", a...)
 		} else {
-			s = fmt.Sprintf(time.Now().Format(l.time_format)+" ["+level_str+"] |"+l.System+"| ["+get_caller_info().String()+"] "+format+"\n", a...)
+			s = fmt.Sprintf(time.Now().Format(l.time_format)+" ["+level_str+"] |"+l.System+"| ["+get_caller_info(l.caller_path_number).String()+"] "+format+"\n", a...)
 		}
 
 	}
 
-	//l.w.Write(StringToReadonlySlice(&s))
-	_, err := l.w.Write([]byte(s))
-	return err
+	l.w.Write(StringToReadonlySlice(&s))
 }
 
 func (l *SimpleLogger) Debug(format string, a ...interface{}) {
@@ -153,8 +154,7 @@ func (l *SimpleLogger) Close() {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	w := l.w
-	if w != nil && w != os.Stdout && w != os.Stderr {
-		w.Close()
+	if l.w != nil {
+		l.w.Close()
 	}
 }

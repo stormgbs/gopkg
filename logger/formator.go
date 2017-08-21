@@ -14,6 +14,7 @@ type LogFormator struct {
 	time_format        string
 	level              Level
 	enable_caller_info bool
+	caller_path_number int
 
 	System string
 }
@@ -23,6 +24,7 @@ func NewDefaultLogFormator() *LogFormator {
 		time_format:        default_time_format,
 		level:              LevelDebug,
 		enable_caller_info: false,
+		caller_path_number: 3,
 	}
 	return l
 }
@@ -64,9 +66,9 @@ func (l *LogFormator) format(level_str string, format string, a ...interface{}) 
 		}
 	} else {
 		if l.System != "" {
-			s = fmt.Sprintf(time.Now().Format(l.time_format)+" ["+level_str+"] |"+l.System+"| ["+get_caller_info().String()+"] "+format+"\n", a...)
+			s = fmt.Sprintf(time.Now().Format(l.time_format)+" ["+level_str+"] |"+l.System+"| ["+get_caller_info(l.caller_path_number).String()+"] "+format+"\n", a...)
 		} else {
-			s = fmt.Sprintf(time.Now().Format(l.time_format)+" ["+level_str+"] |"+l.System+"| ["+get_caller_info().String()+"] "+format+"\n", a...)
+			s = fmt.Sprintf(time.Now().Format(l.time_format)+" ["+level_str+"] |"+l.System+"| ["+get_caller_info(l.caller_path_number).String()+"] "+format+"\n", a...)
 		}
 
 	}

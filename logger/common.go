@@ -45,8 +45,12 @@ func (c caller_info) String() string {
 	return fmt.Sprintf("%s:%s:%s(..):%d", c.pkg, c.file, c.fnc, c.line)
 }
 
-func get_caller_info() caller_info {
-	pc, file, line, _ := runtime.Caller(3)
+func get_caller_info(call_path_number int) caller_info {
+	if call_path_number <= 0 {
+		call_path_number = 3
+	}
+
+	pc, file, line, _ := runtime.Caller(call_path_number)
 	_, fileName := path.Split(file)
 	parts := strings.Split(runtime.FuncForPC(pc).Name(), ".")
 	pl := len(parts)
