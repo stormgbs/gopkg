@@ -13,7 +13,11 @@ import (
 type Level uint8
 
 const (
-	LevelDebug Level = iota
+	LevelDebug4 Level = iota
+	LevelDebug3
+	LevelDebug2
+	LevelDebug1
+	LevelDebug
 	LevelInfo
 	LevelWarn
 	LevelError
@@ -69,5 +73,30 @@ func get_caller_info(call_path_number int) caller_info {
 		file: fileName,
 		fnc:  funcName,
 		line: line,
+	}
+}
+
+func StringToLogLevel(s string) Level {
+	switch strings.ToLower(s) {
+	case "debug4":
+		return LevelDebug4
+	case "debug3":
+		return LevelDebug3
+	case "debug2":
+		return LevelDebug2
+	case "debug1":
+		return LevelDebug1
+	case "debug":
+		return LevelDebug
+	case "info", "information":
+		return LevelInfo
+	case "warn, warning":
+		return LevelWarn
+	case "err", "error":
+		return LevelError
+	case "cri", "crit", "critical":
+		return LevelCrit
+	default:
+		return LevelDebug
 	}
 }

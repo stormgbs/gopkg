@@ -62,6 +62,46 @@ func DisableCallerInfo() {
 	simpleLg.enable_caller_info = false
 }
 
+func Debug4(format string, a ...interface{}) {
+	if simpleLg.disable {
+		return
+	}
+
+	if simpleLg.level <= LevelDebug4 {
+		simpleLg.write("DEBUG4", format, a...)
+	}
+}
+
+func Debug3(format string, a ...interface{}) {
+	if simpleLg.disable {
+		return
+	}
+
+	if simpleLg.level <= LevelDebug3 {
+		simpleLg.write("DEBUG3", format, a...)
+	}
+}
+
+func Debug2(format string, a ...interface{}) {
+	if simpleLg.disable {
+		return
+	}
+
+	if simpleLg.level <= LevelDebug2 {
+		simpleLg.write("DEBUG2", format, a...)
+	}
+}
+
+func Debug1(format string, a ...interface{}) {
+	if simpleLg.disable {
+		return
+	}
+
+	if simpleLg.level <= LevelDebug1 {
+		simpleLg.write("DEBUG1", format, a...)
+	}
+}
+
 func Debug(format string, a ...interface{}) {
 	if simpleLg.disable {
 		return

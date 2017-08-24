@@ -105,6 +105,42 @@ func (l *SimpleLogger) write(level_str string, format string, a ...interface{}) 
 	l.w.Write(StringToReadonlySlice(&s))
 }
 
+func (l *SimpleLogger) Debug4(format string, a ...interface{}) {
+	if l.disable {
+		return
+	}
+	if l.level <= LevelDebug4 {
+		l.write("DEBUG4", format, a...)
+	}
+}
+
+func (l *SimpleLogger) Debug3(format string, a ...interface{}) {
+	if l.disable {
+		return
+	}
+	if l.level <= LevelDebug3 {
+		l.write("DEBUG3", format, a...)
+	}
+}
+
+func (l *SimpleLogger) Debug2(format string, a ...interface{}) {
+	if l.disable {
+		return
+	}
+	if l.level <= LevelDebug2 {
+		l.write("DEBUG2", format, a...)
+	}
+}
+
+func (l *SimpleLogger) Debug1(format string, a ...interface{}) {
+	if l.disable {
+		return
+	}
+	if l.level <= LevelDebug1 {
+		l.write("DEBUG1", format, a...)
+	}
+}
+
 func (l *SimpleLogger) Debug(format string, a ...interface{}) {
 	if l.disable {
 		return

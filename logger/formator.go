@@ -76,6 +76,46 @@ func (l *LogFormator) format(level_str string, format string, a ...interface{}) 
 	return StringToReadonlySlice(&s)
 }
 
+func (l *LogFormator) Debug4(format string, a ...interface{}) []byte {
+	if l.disable {
+		return nil
+	}
+	if l.level <= LevelDebug4 {
+		return l.format("DEBUG4", format, a...)
+	}
+	return nil
+}
+
+func (l *LogFormator) Debug3(format string, a ...interface{}) []byte {
+	if l.disable {
+		return nil
+	}
+	if l.level <= LevelDebug3 {
+		return l.format("DEBUG3", format, a...)
+	}
+	return nil
+}
+
+func (l *LogFormator) Debug2(format string, a ...interface{}) []byte {
+	if l.disable {
+		return nil
+	}
+	if l.level <= LevelDebug2 {
+		return l.format("DEBUG2", format, a...)
+	}
+	return nil
+}
+
+func (l *LogFormator) Debug1(format string, a ...interface{}) []byte {
+	if l.disable {
+		return nil
+	}
+	if l.level <= LevelDebug1 {
+		return l.format("DEBUG1", format, a...)
+	}
+	return nil
+}
+
 func (l *LogFormator) Debug(format string, a ...interface{}) []byte {
 	if l.disable {
 		return nil

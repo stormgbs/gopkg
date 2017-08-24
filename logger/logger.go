@@ -146,6 +146,42 @@ func (l *Logger) loop_write() {
 	}
 }
 
+func (l *Logger) Debug4(format string, a ...interface{}) {
+	if l.disable {
+		return
+	}
+	if l.level <= LevelDebug4 {
+		l.write("DEBUG4", format, a...)
+	}
+}
+
+func (l *Logger) Debug3(format string, a ...interface{}) {
+	if l.disable {
+		return
+	}
+	if l.level <= LevelDebug3 {
+		l.write("DEBUG3", format, a...)
+	}
+}
+
+func (l *Logger) Debug2(format string, a ...interface{}) {
+	if l.disable {
+		return
+	}
+	if l.level <= LevelDebug2 {
+		l.write("DEBUG2", format, a...)
+	}
+}
+
+func (l *Logger) Debug1(format string, a ...interface{}) {
+	if l.disable {
+		return
+	}
+	if l.level <= LevelDebug1 {
+		l.write("DEBUG1", format, a...)
+	}
+}
+
 func (l *Logger) Debug(format string, a ...interface{}) {
 	if l.disable {
 		return
