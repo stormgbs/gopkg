@@ -73,7 +73,7 @@ func (l *Logger) SetWriter(w io.WriteCloser) {
 	l.mutex.Unlock()
 
 	// if old_w != nil && old_bw != nil {
-	if old_w != nil {
+	if old_w != nil && old_w != os.Stdout && old_w != os.Stderr {
 		// old_bw.Flush()
 		// old_bw = nil
 		old_w.Close()
@@ -246,7 +246,8 @@ func (l *Logger) Close() {
 
 	// l.bw.Flush()
 
-	if l.w != nil {
-		l.w.Close()
+	w := l.w
+	if w != nil && w != os.Stdout && w != os.Stderr {
+		w.Close()
 	}
 }

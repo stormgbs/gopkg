@@ -38,7 +38,7 @@ func SetWriter(w io.WriteCloser) {
 	simpleLg.w = w
 	simpleLg.mutex.Unlock()
 
-	if old_w != nil {
+	if old_w != nil && old_w != os.Stdout && old_w != os.Stderr {
 		old_w.Close()
 		old_w = nil
 	}
@@ -152,7 +152,8 @@ func Close() {
 	simpleLg.mutex.Lock()
 	defer simpleLg.mutex.Unlock()
 
-	if simpleLg.w != nil {
-		simpleLg.w.Close()
+	w := simpleLg.w
+	if w != nil && w != os.Stdout && w != os.Stderr {
+		w.Close()
 	}
 }

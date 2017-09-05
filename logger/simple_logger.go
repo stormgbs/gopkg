@@ -60,7 +60,7 @@ func (l *SimpleLogger) SetWriter(w io.WriteCloser) {
 	l.w = w
 	l.mutex.Unlock()
 
-	if old_w != nil {
+	if old_w != nil && old_w != os.Stdout && old_w != os.Stderr {
 		old_w.Close()
 		old_w = nil
 	}
@@ -190,7 +190,8 @@ func (l *SimpleLogger) Close() {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	if l.w != nil {
-		l.w.Close()
+	w := l.w
+	if w != nil && w != os.Stdout && w != os.Stderr {
+		w.Close()
 	}
 }
